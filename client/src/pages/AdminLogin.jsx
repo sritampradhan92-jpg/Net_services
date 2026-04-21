@@ -59,9 +59,15 @@ const AdminLogin = () => {
         navigate("/admin/dashboard");
       }
     } catch (error) {
-      const msg =
-        error.response?.data?.message ||
-        (mode === "signup" ? "Signup failed. Please try again." : "Login failed. Please try again.");
+      console.error("Signup/Login error:", error);
+      let msg = "Something went wrong. Please try again.";
+      
+      if (!error.response) {
+        msg = "Network Error: Cannot reach the server. Make sure the backend is running.";
+      } else {
+        msg = error.response.data?.message || (mode === "signup" ? "Signup failed." : "Login failed.");
+      }
+      
       setAlert({ type: "error", message: msg });
     } finally {
       setLoading(false);
