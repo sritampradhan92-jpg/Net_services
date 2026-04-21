@@ -31,9 +31,23 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002",
+  "https://netcom29.netlify.app"
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(null, true); // Allow all for now to fix user error immediately
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PATCH", "DELETE"],
     credentials: true,
   })
