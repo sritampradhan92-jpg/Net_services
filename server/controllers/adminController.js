@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const Registration = require("../models/Registration");
 const RequestCall = require("../models/RequestCall");
+const Contact = require("../models/Contact");
 
 // GET /api/admin/setup-status – Public
 const getAdminSetupStatus = async (req, res) => {
@@ -147,6 +148,25 @@ const getRequestCalls = async (req, res) => {
   }
 };
 
+// GET /api/admin/contacts – Protected
+const getContacts = async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: contacts.length,
+      data: contacts,
+    });
+  } catch (error) {
+    console.error("Fetch contacts error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+};
+
 // PATCH /api/admin/update-status/:id – Protected
 const updateStatus = async (req, res) => {
   try {
@@ -242,13 +262,42 @@ const deleteRequestCall = async (req, res) => {
   }
 };
 
+// DELETE /api/admin/contacts/:id – Protected
+const deleteContact = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contact = await Contact.findByIdAndDelete(id);
+
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: "Contact message not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Contact message deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete contact error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
+};
+
 module.exports = {
   getAdminSetupStatus,
   signupAdmin,
   loginAdmin,
   getRegistrations,
   getRequestCalls,
+  getContacts,
   updateStatus,
   deleteRegistration,
   deleteRequestCall,
+  deleteContact,
 };

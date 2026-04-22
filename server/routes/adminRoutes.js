@@ -7,9 +7,11 @@ const {
   loginAdmin,
   getRegistrations,
   getRequestCalls,
+  getContacts,
   updateStatus,
   deleteRegistration,
   deleteRequestCall,
+  deleteContact,
 } = require("../controllers/adminController");
 
 // Public
@@ -20,7 +22,9 @@ router.post("/login", loginAdmin);
 // Protected routes
 router.get("/registrations", authMiddleware, getRegistrations);
 router.get("/request-calls", authMiddleware, getRequestCalls);
+router.get("/contacts", authMiddleware, getContacts);
 router.delete("/request-calls/:id", authMiddleware, deleteRequestCall);
+router.delete("/contacts/:id", authMiddleware, deleteContact);
 router.patch("/update-status/:id", authMiddleware, updateStatus);
 router.delete("/delete/:id", authMiddleware, deleteRegistration);
 

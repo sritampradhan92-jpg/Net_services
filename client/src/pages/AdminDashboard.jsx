@@ -8,6 +8,8 @@ import Alert from "../components/Alert";
 const AdminDashboard = () => {
   const [registrations, setRegistrations] = useState([]);
   const [requestCalls, setRequestCalls] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [activeSection, setActiveSection] = useState("requestCalls");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState(null);
@@ -17,12 +19,14 @@ const AdminDashboard = () => {
   const fetchRegistrations = useCallback(async () => {
     try {
       setLoading(true);
-      const [registrationsRes, requestCallsRes] = await Promise.all([
+      const [registrationsRes, requestCallsRes, contactsRes] = await Promise.all([
         API.get("/api/admin/registrations"),
         API.get("/api/admin/request-calls"),
+        API.get("/api/admin/contacts"),
       ]);
       setRegistrations(registrationsRes.data.data || []);
       setRequestCalls(requestCallsRes.data.data || []);
+      setContacts(contactsRes.data.data || []);
     } catch (error) {
       if (error.response?.status === 401) {
         logout();
@@ -90,6 +94,23 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteContact = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this contact message?")) return;
+
+    try {
+      await API.delete(`/api/admin/contacts/${id}`);
+      setContacts((prev) => prev.filter((contact) => contact._id !== id));
+      setAlert({ type: "success", message: "Contact message deleted successfully." });
+    } catch (error) {
+      if (error.response?.status === 401) {
+        logout();
+        navigate("/admin");
+        return;
+      }
+      setAlert({ type: "error", message: "Failed to delete contact message." });
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/admin");
@@ -127,6 +148,15 @@ const AdminDashboard = () => {
     return (
       call.name?.toLowerCase().includes(normalizedQuery) ||
       call.phone?.toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const filteredContacts = contacts.filter((contact) => {
+    if (!normalizedQuery) return true;
+    return (
+      contact.name?.toLowerCase().includes(normalizedQuery) ||
+      contact.phone?.toLowerCase().includes(normalizedQuery) ||
+      contact.message?.toLowerCase().includes(normalizedQuery)
     );
   });
 
@@ -172,31 +202,46 @@ const AdminDashboard = () => {
           />
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-gray-900">{registrations.length}</p>
-            <p className="text-sm text-gray-500">Registrations</p>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-yellow-600">
-              {registrations.filter((r) => r.status === "Pending").length}
-            </p>
-            <p className="text-sm text-gray-500">Pending Registrations</p>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        {/* Section Selector */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <button
+            onClick={() => setActiveSection("requestCalls")}
+            className={`rounded-xl p-5 shadow-sm border text-left transition-colors ${
+              activeSection === "requestCalls"
+                ? "bg-indigo-50 border-indigo-300"
+                : "bg-white border-gray-100 hover:bg-gray-50"
+            }`}
+          >
             <p className="text-2xl font-bold text-indigo-600">{requestCalls.length}</p>
-            <p className="text-sm text-gray-500">Request Calls</p>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <p className="text-2xl font-bold text-green-600">
-              {registrations.filter((r) => r.status === "Completed").length}
-            </p>
-            <p className="text-sm text-gray-500">Completed Registrations</p>
-          </div>
+            <p className="text-sm text-gray-600">Request Calls</p>
+          </button>
+
+          <button
+            onClick={() => setActiveSection("contacts")}
+            className={`rounded-xl p-5 shadow-sm border text-left transition-colors ${
+              activeSection === "contacts"
+                ? "bg-teal-50 border-teal-300"
+                : "bg-white border-gray-100 hover:bg-gray-50"
+            }`}
+          >
+            <p className="text-2xl font-bold text-teal-600">{contacts.length}</p>
+            <p className="text-sm text-gray-600">Contact Messages</p>
+          </button>
+
+          <button
+            onClick={() => setActiveSection("registrations")}
+            className={`rounded-xl p-5 shadow-sm border text-left transition-colors ${
+              activeSection === "registrations"
+                ? "bg-primary-50 border-primary-300"
+                : "bg-white border-gray-100 hover:bg-gray-50"
+            }`}
+          >
+            <p className="text-2xl font-bold text-gray-900">{registrations.length}</p>
+            <p className="text-sm text-gray-600">Registrations</p>
+          </button>
         </div>
 
-        {/* Request Calls Table */}
+        {activeSection === "requestCalls" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Request Calls</h2>
@@ -248,8 +293,65 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+        )}
 
-        {/* Registrations Table */}
+        {activeSection === "contacts" && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-900">Contact Messages</h2>
+            <button
+              onClick={fetchRegistrations}
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {loading ? (
+            <LoadingSpinner />
+          ) : filteredContacts.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
+              <p className="text-lg">No contact messages found for current search.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Message</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredContacts.map((contact) => (
+                    <tr key={contact._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">{contact.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">{contact.phone}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 hidden lg:table-cell max-w-[280px] truncate">{contact.message}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                        {new Date(contact.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => handleDeleteContact(contact._id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        )}
+
+        {activeSection === "registrations" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Registrations</h2>
@@ -346,6 +448,7 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+        )}
       </main>
     </div>
   );

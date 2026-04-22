@@ -1,7 +1,15 @@
 import axios from "axios";
 
+const isLocalHost =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const defaultBaseURL = isLocalHost
+  ? "http://localhost:5000"
+  : "https://netcom-backend.onrender.com";
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
+  baseURL: import.meta.env.VITE_API_URL || defaultBaseURL,
   headers: {
     "Content-Type": "application/json",
   },

@@ -63,7 +63,8 @@ const AdminLogin = () => {
       let msg = "Something went wrong. Please try again.";
       
       if (!error.response) {
-        msg = "Network Error: Cannot reach the server. Make sure the backend is running.";
+        msg =
+          "Network Error: Cannot reach the API server. If you are using live site, set VITE_API_URL to your deployed backend URL. For local use, keep backend running on port 5000.";
       } else {
         msg = error.response.data?.message || (mode === "signup" ? "Signup failed." : "Login failed.");
       }
