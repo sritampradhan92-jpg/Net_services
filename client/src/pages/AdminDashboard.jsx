@@ -52,11 +52,6 @@ const AdminDashboard = () => {
 
       if (failedCount === 3) {
         setAlert({ type: "error", message: "Failed to fetch dashboard data." });
-      } else if (failedCount > 0) {
-        setAlert({
-          type: "error",
-          message: "Some dashboard sections could not be loaded right now. Please refresh.",
-        });
       } else {
         setAlert(null);
       }
