@@ -19,14 +19,47 @@ const AdminDashboard = () => {
   const fetchRegistrations = useCallback(async () => {
     try {
       setLoading(true);
-      const [registrationsRes, requestCallsRes, contactsRes] = await Promise.all([
+      const [registrationsRes, requestCallsRes, contactsRes] = await Promise.allSettled([
         API.get("/api/admin/registrations"),
         API.get("/api/admin/request-calls"),
         API.get("/api/admin/contacts"),
       ]);
-      setRegistrations(registrationsRes.data.data || []);
-      setRequestCalls(requestCallsRes.data.data || []);
-      setContacts(contactsRes.data.data || []);
+
+      const hasUnauthorizedError = [registrationsRes, requestCallsRes, contactsRes].some(
+        (result) => result.status === "rejected" && result.reason?.response?.status === 401
+      );
+
+      if (hasUnauthorizedError) {
+        logout();
+        navigate("/admin");
+        return;
+      }
+
+      const nextRegistrations =
+        registrationsRes.status === "fulfilled" ? registrationsRes.value.data?.data || [] : [];
+      const nextRequestCalls =
+        requestCallsRes.status === "fulfilled" ? requestCallsRes.value.data?.data || [] : [];
+      const nextContacts =
+        contactsRes.status === "fulfilled" ? contactsRes.value.data?.data || [] : [];
+
+      setRegistrations(nextRegistrations);
+      setRequestCalls(nextRequestCalls);
+      setContacts(nextContacts);
+
+      const failedCount = [registrationsRes, requestCallsRes, contactsRes].filter(
+        (result) => result.status === "rejected"
+      ).length;
+
+      if (failedCount === 3) {
+        setAlert({ type: "error", message: "Failed to fetch dashboard data." });
+      } else if (failedCount > 0) {
+        setAlert({
+          type: "error",
+          message: "Some dashboard sections could not be loaded right now. Please refresh.",
+        });
+      } else {
+        setAlert(null);
+      }
     } catch (error) {
       if (error.response?.status === 401) {
         logout();
